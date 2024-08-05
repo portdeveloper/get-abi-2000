@@ -1,4 +1,3 @@
-// storage.go
 package main
 
 import "sync"
@@ -14,15 +13,15 @@ func NewABIStorage() *ABIStorage {
 	}
 }
 
-func (s *ABIStorage) Set(address, abi string) {
+func (s *ABIStorage) Set(key string, abi string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.cache[address] = abi
+	s.cache[key] = abi
 }
 
-func (s *ABIStorage) Get(address string) (string, bool) {
+func (s *ABIStorage) Get(key string) (string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	abi, ok := s.cache[address]
+	abi, ok := s.cache[key]
 	return abi, ok
 }
