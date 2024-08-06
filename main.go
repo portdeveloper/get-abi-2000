@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,6 +14,8 @@ var (
 	storage   *ABIStorage
 	chainAPIs map[int]ChainAPI
 )
+
+var ErrABINotFound = errors.New("ABI not found")
 
 func init() {
 	err := godotenv.Load()
@@ -65,9 +68,8 @@ func getABI(c *gin.Context) {
 	// Fetch ABI from the chain-specific API
 	abi, err := api.GetABI(address)
 	if err != nil {
-		// Check if the error is due to missing API key
-		if err.Error() == "API key not set for chain" {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "API key not configured for this chain"})
+		if err == ErrABINotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "ABI not found"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
