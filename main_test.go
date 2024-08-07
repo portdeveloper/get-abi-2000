@@ -52,7 +52,9 @@ func TestGetABI(t *testing.T) {
 			address:        "0x123",
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"abi": "mock ABI",
+				"abi":            "mock ABI",
+				"implementation": nil,
+				"isProxy":        false,
 			},
 		},
 		{
@@ -68,7 +70,7 @@ func TestGetABI(t *testing.T) {
 			name:           "Invalid address",
 			chainID:        "1",
 			address:        "0x456",
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{
 				"error": "ABI not found",
 			},
@@ -95,15 +97,21 @@ func TestABIStorage(t *testing.T) {
 	storage := NewABIStorage()
 
 	// Test Set and Get
-	storage.Set("test-key", "test-abi")
-	abi, ok := storage.Get("test-key")
+	testItem := StorageItem{
+		ABI:            "test-abi",
+		Implementation: "0x123",
+		IsProxy:        true,
+	}
+	storage.Set("test-key", testItem)
+
+	item, ok := storage.Get("test-key")
 	assert.True(t, ok)
-	assert.Equal(t, "test-abi", abi)
+	assert.Equal(t, testItem, item)
 
 	// Test Get with non-existent key
-	abi, ok = storage.Get("non-existent")
+	item, ok = storage.Get("non-existent")
 	assert.False(t, ok)
-	assert.Empty(t, abi)
+	assert.Equal(t, StorageItem{}, item)
 }
 
 func TestRealEtherscanCall(t *testing.T) {

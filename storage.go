@@ -4,24 +4,30 @@ import "sync"
 
 type ABIStorage struct {
 	mu    sync.RWMutex
-	cache map[string]string
+	cache map[string]StorageItem
+}
+
+type StorageItem struct {
+	ABI            string
+	Implementation interface{}
+	IsProxy        bool
 }
 
 func NewABIStorage() *ABIStorage {
 	return &ABIStorage{
-		cache: make(map[string]string),
+		cache: make(map[string]StorageItem),
 	}
 }
 
-func (s *ABIStorage) Set(key string, abi string) {
+func (s *ABIStorage) Set(key string, item StorageItem) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.cache[key] = abi
+	s.cache[key] = item
 }
 
-func (s *ABIStorage) Get(key string) (string, bool) {
+func (s *ABIStorage) Get(key string) (StorageItem, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	abi, ok := s.cache[key]
-	return abi, ok
+	item, ok := s.cache[key]
+	return item, ok
 }

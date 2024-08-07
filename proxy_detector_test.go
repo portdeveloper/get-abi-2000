@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,17 +15,7 @@ func TestProxyDetection(t *testing.T) {
 		t.Skip("Skipping integration tests in short mode")
 	}
 
-	err := godotenv.Load()
-	if err != nil {
-		t.Fatal("Error loading .env file")
-	}
-
-	apiKey := os.Getenv("INFURA_API_KEY")
-	if apiKey == "" {
-		t.Fatal("INFURA_API_KEY environment variable is not set")
-	}
-
-	client, err := ethclient.Dial("https://mainnet.infura.io/v3/" + apiKey)
+	client, err := ethclient.Dial("https://rpc.ankr.com/eth")
 	if err != nil {
 		t.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
