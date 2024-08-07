@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	storage   *ABIStorage
-	chainAPIs map[int]ChainAPI
+	storage       *ABIStorage
+	etherscanAPIs map[int]ChainAPI
 )
 
 var ErrABINotFound = errors.New("ABI not found")
@@ -25,13 +25,13 @@ func init() {
 
 	storage = NewABIStorage()
 
-	// Initialize chain APIs
-	chainAPIs = make(map[int]ChainAPI)
-	chainAPIs[1] = &GenericEtherscanAPI{BaseURL: "https://api.etherscan.io/api", EnvKey: "ETHEREUM_API_KEY"}
-	chainAPIs[11155111] = &GenericEtherscanAPI{BaseURL: "https://api-sepolia.etherscan.io/api", EnvKey: "SEPOLIA_API_KEY"}
-	chainAPIs[10] = &GenericEtherscanAPI{BaseURL: "https://api-optimistic.etherscan.io/api", EnvKey: "OPTIMISM_API_KEY"}
-	chainAPIs[56] = &GenericEtherscanAPI{BaseURL: "https://api.bscscan.com/api", EnvKey: "BSC_API_KEY"}
-	// Add more chains here as needed
+	// Initialize Etherscan APIs
+	etherscanAPIs = make(map[int]ChainAPI)
+	etherscanAPIs[1] = &GenericEtherscanAPI{BaseURL: "https://api.etherscan.io/api", EnvKey: "ETHEREUM_API_KEY"}
+	etherscanAPIs[11155111] = &GenericEtherscanAPI{BaseURL: "https://api-sepolia.etherscan.io/api", EnvKey: "SEPOLIA_API_KEY"}
+	etherscanAPIs[10] = &GenericEtherscanAPI{BaseURL: "https://api-optimistic.etherscan.io/api", EnvKey: "OPTIMISM_API_KEY"}
+	etherscanAPIs[56] = &GenericEtherscanAPI{BaseURL: "https://api.bscscan.com/api", EnvKey: "BSC_API_KEY"}
+	// Add more Etherscan-based APIs here as needed
 }
 
 func main() {
@@ -58,8 +58,8 @@ func getABI(c *gin.Context) {
 		return
 	}
 
-	// Get the appropriate chain API
-	api, ok := chainAPIs[chainId]
+	// Get the appropriate Etherscan API
+	api, ok := etherscanAPIs[chainId]
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain ID"})
 		return

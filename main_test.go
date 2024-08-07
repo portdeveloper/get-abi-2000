@@ -36,7 +36,7 @@ func TestGetABI(t *testing.T) {
 			"0x123": "mock ABI",
 		},
 	}
-	chainAPIs[1] = mockAPI
+	etherscanAPIs[1] = mockAPI
 
 	// Test cases
 	testCases := []struct {
