@@ -54,7 +54,7 @@ func getABI(c *gin.Context) {
 
 	// Check if ABI is in storage
 	if abi, ok := storage.Get(chainIdStr + "-" + address); ok {
-		c.JSON(http.StatusOK, gin.H{"chainId": chainId, "address": address, "abi": abi})
+		c.JSON(http.StatusOK, gin.H{"abi": abi})
 		return
 	}
 
@@ -79,5 +79,5 @@ func getABI(c *gin.Context) {
 	// Store the fetched ABI
 	storage.Set(chainIdStr+"-"+address, abi)
 
-	c.JSON(http.StatusOK, gin.H{"chainId": chainId, "address": address, "abi": abi})
+	c.JSON(http.StatusOK, gin.H{"abi": abi})
 }
