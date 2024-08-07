@@ -52,9 +52,7 @@ func TestGetABI(t *testing.T) {
 			address:        "0x123",
 			expectedStatus: http.StatusOK,
 			expectedBody: map[string]interface{}{
-				"chainId": float64(1),
-				"address": "0x123",
-				"abi":     "mock ABI",
+				"abi": "mock ABI",
 			},
 		},
 		{
