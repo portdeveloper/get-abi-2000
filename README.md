@@ -53,9 +53,17 @@ GET `/abi/:chainId/:address`
 - `:chainId`: The chain ID (1 for Ethereum, 11155111 for Sepolia, 10 for Optimism, 56 for BSC)
 - `:address`: The contract address
 
-Example:
+Example 1 (mainnet, non-proxy, not decompiled):
+
+```curl http://localhost:8080/abi/1/0x6B175474E89094C44Da98b954EedeAC495271d0F```   
+
+Example 2 (mainnet, proxy, not decompiled):
 
 ```curl http://localhost:8080/abi/1/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48```   
+
+Example 3 (sepolia, non-proxy, decompiled):
+
+```curl http://localhost:8080/abi/11155111/0x759c0e9d7858566df8ab751026bedce462ff42df```   
 
 ### Response
 
