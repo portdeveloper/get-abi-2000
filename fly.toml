@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for get-abi-2000 on 2024-08-08T10:24:47+03:00
+# fly.toml app configuration file generated for get-abi-2000 on 2024-08-08T11:00:38+03:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -7,8 +7,6 @@ app = 'get-abi-2000'
 primary_region = 'cdg'
 
 [build]
-  [build.args]
-    GO_VERSION = '1.22.5'
 
 [env]
   PORT = '8080'
