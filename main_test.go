@@ -210,3 +210,92 @@ func TestRealUSDCProxyDetection(t *testing.T) {
 
 	t.Logf("Received ABI: %s", abi)
 }
+
+func TestHeimdallAPIResponse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Setup
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	router.GET("/abi/:chainId/:address", getABI)
+
+	// Test contract address
+	address := "0x759c0e9d7858566df8ab751026bedce462ff42df"
+	chainID := "11155111" // Sepolia chain ID
+
+	// Make the request
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/abi/"+chainID+"/"+address, nil)
+	router.ServeHTTP(w, req)
+
+	// Check the response
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	// Check the specific fields
+	assert.Nil(t, response["implementation"])
+	assert.Equal(t, true, response["isDecompiled"])
+	assert.Equal(t, false, response["isProxy"])
+
+	// Check if the ABI is correct
+	expectedABI := `[
+  {
+    "type": "function",
+    "name": "changeOwner",
+    "inputs": [
+      {
+        "name": "arg0",
+        "type": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getOwner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "event",
+    "name": "OwnerSet",
+    "inputs": [
+      {
+        "name": "arg0",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "arg1",
+        "type": "address",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  }
+]`
+
+	actualABI, ok := response["abi"].(string)
+	assert.True(t, ok)
+
+	// Normalize the JSON strings for comparison
+	var expectedJSON, actualJSON interface{}
+	json.Unmarshal([]byte(expectedABI), &expectedJSON)
+	json.Unmarshal([]byte(actualABI), &actualJSON)
+
+	assert.Equal(t, expectedJSON, actualJSON)
+
+	t.Logf("Received ABI: %s", actualABI)
+}
