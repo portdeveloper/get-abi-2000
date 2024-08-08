@@ -55,6 +55,7 @@ func TestGetABI(t *testing.T) {
 				"abi":            "mock ABI",
 				"implementation": nil,
 				"isProxy":        false,
+				"isDecompiled":   false,
 			},
 		},
 		{
@@ -70,9 +71,9 @@ func TestGetABI(t *testing.T) {
 			name:           "Invalid address",
 			chainID:        "1",
 			address:        "0x456",
-			expectedStatus: http.StatusNotFound,
+			expectedStatus: http.StatusInternalServerError,
 			expectedBody: map[string]interface{}{
-				"error": "ABI not found",
+				"error": "Failed to fetch ABI from both Etherscan and Heimdall",
 			},
 		},
 	}

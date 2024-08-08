@@ -3,9 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -58,6 +60,7 @@ func getABI(c *gin.Context) {
 			"abi":            item.ABI,
 			"implementation": item.Implementation,
 			"isProxy":        item.IsProxy,
+			"isDecompiled":   item.IsDecompiled,
 		})
 		return
 	}
@@ -93,26 +96,51 @@ func getABI(c *gin.Context) {
 	}
 
 	abi, err := api.GetABI(targetAddress)
+	isDecompiled := false
 	if err != nil {
-		if err == ErrABINotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "ABI not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ABI"})
+		// Fallback to Heimdall API
+		rpcURL := strings.TrimPrefix(nodeURL, "https://")
+		abi, err = getABIFromHeimdall(targetAddress, rpcURL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ABI from both Etherscan and Heimdall"})
+			return
 		}
-		return
+		isDecompiled = true
 	}
 
 	storage.Set(chainIdStr+"-"+address, StorageItem{
 		ABI:            abi,
 		Implementation: implementation,
 		IsProxy:        proxyInfo != nil,
+		IsDecompiled:   isDecompiled,
 	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"abi":            abi,
 		"implementation": implementation,
 		"isProxy":        proxyInfo != nil,
+		"isDecompiled":   isDecompiled,
 	})
+}
+
+func getABIFromHeimdall(address string, rpcURL string) (string, error) {
+	url := fmt.Sprintf("https://heimdall-api.fly.dev/%s?rpc_url=%s", address, rpcURL)
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("heimdall API error: %s", string(body))
+	}
+
+	return string(body), nil
 }
 
 func getRPCURL(chainId int) (string, error) {

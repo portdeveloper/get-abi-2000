@@ -11,6 +11,7 @@ type StorageItem struct {
 	ABI            string
 	Implementation interface{}
 	IsProxy        bool
+	IsDecompiled   bool
 }
 
 func NewABIStorage() *ABIStorage {
