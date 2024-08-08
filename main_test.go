@@ -153,3 +153,60 @@ func TestRealEtherscanCall(t *testing.T) {
 	// You could add more specific checks here if you know what the ABI should contain
 	t.Logf("Received ABI: %s", abi)
 }
+
+func TestRealUSDCProxyDetection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		t.Fatal("Error loading .env file")
+	}
+
+	// Ensure the API key is set
+	apiKey := os.Getenv("ETHEREUM_API_KEY")
+	if apiKey == "" {
+		t.Skip("Skipping test: ETHEREUM_API_KEY not set")
+	}
+
+	// Setup
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	router.GET("/abi/:chainId/:address", getABI)
+
+	// Create a real EtherscanAPI instance for Ethereum
+	etherscanAPI := &GenericEtherscanAPI{
+		BaseURL: "https://api.etherscan.io/api",
+		EnvKey:  "ETHEREUM_API_KEY",
+	}
+	etherscanAPIs[1] = etherscanAPI
+
+	// USDC contract address
+	address := "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+
+	// Make the request
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/abi/1/"+address, nil)
+	router.ServeHTTP(w, req)
+
+	// Check the response
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	// Check the specific fields
+	assert.Equal(t, "0x43506849D7C04F9138D1A2050bbF3A0c054402dd", response["implementation"])
+	assert.Equal(t, false, response["isDecompiled"])
+	assert.Equal(t, true, response["isProxy"])
+
+	// Check if the ABI contains "isBlacklisted"
+	abi, ok := response["abi"].(string)
+	assert.True(t, ok)
+	assert.Contains(t, abi, "isBlacklisted")
+
+	t.Logf("Received ABI: %s", abi)
+}
