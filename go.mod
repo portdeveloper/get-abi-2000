@@ -4,6 +4,7 @@ go 1.22.5
 
 require (
 	github.com/ethereum/go-ethereum v1.14.7
+	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.9.0
