@@ -87,6 +87,18 @@ func getABI(c *gin.Context) {
 		return
 	}
 
+	// Check if the address is a contract
+	code, err := client.CodeAt(c.Request.Context(), common.HexToAddress(address), nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check contract code: %v", err)})
+		return
+	}
+
+	if len(code) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "The provided address is not a contract"})
+		return
+	}
+
 	proxyInfo, err := DetectProxyTarget(c.Request.Context(), client, common.HexToAddress(address))
 	if err != nil {
 		proxyInfo = nil
