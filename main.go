@@ -98,14 +98,18 @@ func getABI(c *gin.Context) {
 
 	chainIdInt, _ := strconv.Atoi(chainId)
 	api, ok := etherscanAPIs[chainIdInt]
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain ID"})
-		return
+
+	var abi string
+	var isDecompiled bool
+
+	if ok {
+		abi, err = api.GetABIFromEtherscan(targetAddress)
+		if err == nil {
+			isDecompiled = false
+		}
 	}
 
-	abi, err := api.GetABIFromEtherscan(targetAddress)
-	isDecompiled := false
-	if err != nil {
+	if !ok || err != nil {
 		abi, err = getABIFromHeimdall(targetAddress, rpcURL)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ABI"})

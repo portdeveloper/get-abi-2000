@@ -219,3 +219,42 @@ func TestHeimdallAPIResponse(t *testing.T) {
 
 	t.Logf("Received ABI: %s", actualABI)
 }
+
+func TestParexContractABI(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Setup
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	router.GET("/abi/:chainId/:address/*rpcUrl", getABI)
+
+	// Test contract address
+	address := "0x6058518142C6AD506530F5A62dCc58050bf6fC28"
+	chainID := "322202" // Parex chain ID
+	rpcURL := "mainnet-rpc.parex.network"
+
+	// Make the request
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/abi/"+chainID+"/"+address+"/"+rpcURL, nil)
+	router.ServeHTTP(w, req)
+
+	// Check the response
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	// Check the specific fields
+	assert.Equal(t, false, response["isProxy"])
+	assert.Equal(t, true, response["isDecompiled"])
+
+	// Check if the ABI contains "sendValidatorReward"
+	abi, ok := response["abi"].(string)
+	assert.True(t, ok)
+	assert.Contains(t, abi, "sendValidatorReward")
+
+	t.Logf("Received ABI: %s", abi)
+}
