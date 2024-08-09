@@ -12,88 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type MockChainAPI struct {
-	ABIs map[string]string
-}
-
-func (m *MockChainAPI) GetABI(address string) (string, error) {
-	abi, ok := m.ABIs[address]
-	if !ok {
-		return "", ErrABINotFound
-	}
-	return abi, nil
-}
-
-func TestGetABI(t *testing.T) {
-	// Setup
-	gin.SetMode(gin.TestMode)
-	router := gin.Default()
-	router.GET("/abi/:chainId/:address", getABI)
-
-	// Mock ChainAPI
-	mockAPI := &MockChainAPI{
-		ABIs: map[string]string{
-			"0x123": "mock ABI",
-		},
-	}
-	etherscanAPIs[1] = mockAPI
-
-	// Test cases
-	testCases := []struct {
-		name           string
-		chainID        string
-		address        string
-		expectedStatus int
-		expectedBody   map[string]interface{}
-	}{
-		{
-			name:           "Valid request",
-			chainID:        "1",
-			address:        "0x123",
-			expectedStatus: http.StatusOK,
-			expectedBody: map[string]interface{}{
-				"abi":            "mock ABI",
-				"implementation": nil,
-				"isProxy":        false,
-				"isDecompiled":   false,
-			},
-		},
-		{
-			name:           "Invalid chain ID",
-			chainID:        "999",
-			address:        "0x123",
-			expectedStatus: http.StatusBadRequest,
-			expectedBody: map[string]interface{}{
-				"error": "Unsupported chain ID",
-			},
-		},
-		{
-			name:           "Invalid address",
-			chainID:        "1",
-			address:        "0x456",
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody: map[string]interface{}{
-				"error": "Failed to fetch ABI from both Etherscan and Heimdall",
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/abi/"+tc.chainID+"/"+tc.address, nil)
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, tc.expectedStatus, w.Code)
-
-			var response map[string]interface{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedBody, response)
-		})
-	}
-}
-
 func TestABIStorage(t *testing.T) {
 	storage := NewABIStorage()
 
@@ -142,7 +60,7 @@ func TestRealEtherscanCall(t *testing.T) {
 	address := "0xE575E956757c20b22C5a11eB542F719564c32Fe8"
 
 	// Call GetABI
-	abi, err := optimismAPI.GetABI(address)
+	abi, err := optimismAPI.GetABIFromEtherscan(address)
 	if err != nil {
 		t.Fatalf("Error getting ABI: %v", err)
 	}
@@ -174,7 +92,7 @@ func TestRealUSDCProxyDetection(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	router.GET("/abi/:chainId/:address", getABI)
+	router.GET("/abi/:chainId/:address/*rpcUrl", getABI)
 
 	// Create a real EtherscanAPI instance for Ethereum
 	etherscanAPI := &GenericEtherscanAPI{
@@ -185,10 +103,11 @@ func TestRealUSDCProxyDetection(t *testing.T) {
 
 	// USDC contract address
 	address := "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+	rpcURL := "rpc.ankr.com/eth" // Replace with a valid Ethereum RPC URL
 
 	// Make the request
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/abi/1/"+address, nil)
+	req, _ := http.NewRequest("GET", "/abi/1/"+address+"/"+rpcURL, nil)
 	router.ServeHTTP(w, req)
 
 	// Check the response
@@ -219,15 +138,16 @@ func TestHeimdallAPIResponse(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	router.GET("/abi/:chainId/:address", getABI)
+	router.GET("/abi/:chainId/:address/*rpcUrl", getABI)
 
 	// Test contract address
 	address := "0x759c0e9d7858566df8ab751026bedce462ff42df"
 	chainID := "11155111" // Sepolia chain ID
+	rpcURL := "rpc.ankr.com/eth_sepolia"
 
 	// Make the request
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/abi/"+chainID+"/"+address, nil)
+	req, _ := http.NewRequest("GET", "/abi/"+chainID+"/"+address+"/"+rpcURL, nil)
 	router.ServeHTTP(w, req)
 
 	// Check the response

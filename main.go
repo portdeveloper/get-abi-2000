@@ -44,22 +44,20 @@ func main() {
 	config.AllowAllOrigins = true
 	router.Use(cors.New(config))
 
-	router.GET("/abi/:chainId/:address", getABI)
+	router.GET("/abi/:chainId/:address/*rpcUrl", getABI)
 
 	log.Fatal(router.Run(":8080"))
 }
 
 func getABI(c *gin.Context) {
-	chainIdStr := c.Param("chainId")
+	chainId := c.Param("chainId")
 	address := c.Param("address")
+	rpcURL := c.Param("rpcUrl")
 
-	chainId, err := strconv.Atoi(chainIdStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chain ID"})
-		return
-	}
+	rpcURL = strings.TrimPrefix(rpcURL, "/")
+	fullRPCURL := "https://" + rpcURL
 
-	if item, ok := storage.Get(chainIdStr + "-" + address); ok {
+	if item, ok := storage.Get(chainId + "-" + address); ok {
 		c.JSON(http.StatusOK, gin.H{
 			"abi":            item.ABI,
 			"implementation": item.Implementation,
@@ -69,25 +67,12 @@ func getABI(c *gin.Context) {
 		return
 	}
 
-	api, ok := etherscanAPIs[chainId]
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain ID"})
-		return
-	}
-
-	nodeURL, err := getRPCURL(chainId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to get RPC URL: %v", err)})
-		return
-	}
-
-	client, err := ethclient.Dial(nodeURL)
+	client, err := ethclient.Dial(fullRPCURL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect to Ethereum node"})
 		return
 	}
 
-	// Check if the address is a contract
 	code, err := client.CodeAt(c.Request.Context(), common.HexToAddress(address), nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to check contract code: %v", err)})
@@ -111,20 +96,25 @@ func getABI(c *gin.Context) {
 		implementation = targetAddress
 	}
 
-	abi, err := api.GetABI(targetAddress)
+	chainIdInt, _ := strconv.Atoi(chainId)
+	api, ok := etherscanAPIs[chainIdInt]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported chain ID"})
+		return
+	}
+
+	abi, err := api.GetABIFromEtherscan(targetAddress)
 	isDecompiled := false
 	if err != nil {
-		// Fallback to Heimdall API
-		rpcURL := strings.TrimPrefix(nodeURL, "https://")
 		abi, err = getABIFromHeimdall(targetAddress, rpcURL)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ABI from both Etherscan and Heimdall"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch ABI"})
 			return
 		}
 		isDecompiled = true
 	}
 
-	storage.Set(chainIdStr+"-"+address, StorageItem{
+	storage.Set(chainId+"-"+address, StorageItem{
 		ABI:            abi,
 		Implementation: implementation,
 		IsProxy:        proxyInfo != nil,
@@ -157,19 +147,4 @@ func getABIFromHeimdall(address string, rpcURL string) (string, error) {
 	}
 
 	return string(body), nil
-}
-
-func getRPCURL(chainId int) (string, error) {
-	switch chainId {
-	case 1:
-		return "https://rpc.ankr.com/eth", nil
-	case 11155111:
-		return "https://rpc.ankr.com/eth_sepolia", nil
-	case 10:
-		return "https://rpc.ankr.com/optimism", nil
-	case 56:
-		return "https://rpc.ankr.com/bsc", nil
-	default:
-		return "", fmt.Errorf("unsupported chain ID: %d", chainId)
-	}
 }

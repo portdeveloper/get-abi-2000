@@ -8,7 +8,7 @@ import (
 )
 
 type ChainAPI interface {
-	GetABI(address string) (string, error)
+	GetABIFromEtherscan(address string) (string, error)
 }
 
 type GenericEtherscanAPI struct {
@@ -16,7 +16,7 @@ type GenericEtherscanAPI struct {
 	EnvKey  string
 }
 
-func (e *GenericEtherscanAPI) GetABI(address string) (string, error) {
+func (e *GenericEtherscanAPI) GetABIFromEtherscan(address string) (string, error) {
 	apiKey := os.Getenv(e.EnvKey)
 	if apiKey == "" {
 		return "", fmt.Errorf("API key not set for chain")
