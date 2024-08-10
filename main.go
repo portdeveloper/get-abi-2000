@@ -2,10 +2,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -59,12 +62,44 @@ func getABI(c *gin.Context) {
 	address := c.Param("address")
 	rpcURL := strings.TrimPrefix(c.Param("rpcUrl"), "/")
 
+	if err := validateInput(chainId, address, rpcURL); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	abiFetcher := NewABIFetcher(storage, etherscanAPIs)
 	response, err := abiFetcher.FetchABI(c, chainId, address, rpcURL)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		status, errorMessage := handleError(err)
+		c.JSON(status, gin.H{"error": errorMessage})
 		return
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func validateInput(chainId, address, rpcURL string) error {
+	if _, err := strconv.Atoi(chainId); err != nil {
+		return fmt.Errorf("invalid chainId: must be a number")
+	}
+	if !common.IsHexAddress(address) {
+		return fmt.Errorf("invalid address: must be a valid Ethereum address")
+	}
+	if rpcURL == "" {
+		return fmt.Errorf("invalid rpcURL: cannot be empty")
+	}
+	return nil
+}
+
+func handleError(err error) (int, string) {
+	switch err.(type) {
+	case *InvalidInputError:
+		return http.StatusBadRequest, err.Error()
+	case *ContractNotFoundError:
+		return http.StatusNotFound, err.Error()
+	case *EtherscanAPIError:
+		return http.StatusServiceUnavailable, "External API error: " + err.Error()
+	default:
+		return http.StatusInternalServerError, "Internal server error"
+	}
 }

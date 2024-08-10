@@ -31,7 +31,7 @@ func (af *ABIFetcher) FetchABI(c *gin.Context, chainId string, address string, r
 
 	client, err := ethclient.Dial("https://" + rpcURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Ethereum node: %v", err)
+		return nil, &InvalidInputError{message: "Failed to connect to Ethereum node: " + err.Error()}
 	}
 
 	if err := af.validateContract(c.Request.Context(), client, address); err != nil {
@@ -46,7 +46,7 @@ func (af *ABIFetcher) FetchABI(c *gin.Context, chainId string, address string, r
 	targetAddress, implementation := af.getTargetAddress(address, proxyInfo)
 	abi, isDecompiled, err := af.getABI(chainId, targetAddress, rpcURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch ABI: %v", err)
+		return nil, err
 	}
 
 	item := StorageItem{
