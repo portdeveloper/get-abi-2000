@@ -1,5 +1,3 @@
-
-
 ![logo](https://github.com/user-attachments/assets/d71778e6-4fe5-48e3-aa5f-9ad17f783f5e)
 
 Get-ABI-2000 is a Go-based API service that fetches and caches Ethereum contract ABIs. It supports multiple chains, proxy contract detection, and fallback to decompiled ABIs using the Heimdall API.
@@ -48,24 +46,34 @@ To run the server locally:
 
 The server will start on `http://localhost:8080`.
 
-### API Endpoint
+### API Endpoints
 
-GET `/abi/:chainId/:address`
+1. Health Check:
+   GET `/`
+
+2. Fetch ABI:
+   GET `/abi/:chainId/:address/*rpcUrl`
 
 - `:chainId`: The chain ID (1 for Ethereum, 11155111 for Sepolia, 10 for Optimism, 56 for BSC)
 - `:address`: The contract address
+- `:rpcUrl`: The RPC URL for the blockchain (without 'https://')
 
-Example 1 (mainnet, non-proxy, not decompiled):
+Examples:
 
-```curl http://localhost:8080/abi/1/0x6B175474E89094C44Da98b954EedeAC495271d0F```   
+1. Mainnet (non-proxy, not decompiled):
+   ```
+   curl http://localhost:8080/abi/1/0x6B175474E89094C44Da98b954EedeAC495271d0F/rpc.ankr.com/eth
+   ```
 
-Example 2 (mainnet, proxy, not decompiled):
+2. Mainnet (proxy, not decompiled):
+   ```
+   curl http://localhost:8080/abi/1/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/rpc.ankr.com/eth
+   ```
 
-```curl http://localhost:8080/abi/1/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48```   
-
-Example 3 (sepolia, non-proxy, decompiled):
-
-```curl http://localhost:8080/abi/11155111/0x759c0e9d7858566df8ab751026bedce462ff42df```   
+3. Sepolia (non-proxy, decompiled):
+   ```
+   curl http://localhost:8080/abi/11155111/0x759c0e9d7858566df8ab751026bedce462ff42df/rpc.ankr.com/eth_sepolia
+   ```
 
 ### Response
 
