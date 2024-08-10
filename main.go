@@ -23,6 +23,8 @@ var (
 
 var ErrABINotFound = errors.New("ABI not found")
 
+// TODO: Remove allow all origins
+
 func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
@@ -44,9 +46,17 @@ func main() {
 	config.AllowAllOrigins = true
 	router.Use(cors.New(config))
 
+	router.GET("/", healthCheck)
 	router.GET("/abi/:chainId/:address/*rpcUrl", getABI)
 
 	log.Fatal(router.Run(":8080"))
+}
+
+func healthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "healthy",
+		"message": "Get-ABI-2000 is up and running",
+	})
 }
 
 func getABI(c *gin.Context) {
