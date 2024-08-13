@@ -82,8 +82,8 @@ func validateInput(chainId, address, rpcURL string) error {
 	if _, err := strconv.Atoi(chainId); err != nil {
 		return fmt.Errorf("invalid chainId: must be a number")
 	}
-	if !common.IsHexAddress(address) {
-		return fmt.Errorf("invalid address: must be a valid Ethereum address")
+	if !common.IsHexAddress(address) || len(address) != 42 {
+		return fmt.Errorf("invalid address: must be a valid 42-character Ethereum address (including '0x' prefix)")
 	}
 	if rpcURL == "" {
 		return fmt.Errorf("invalid rpcURL: cannot be empty")
