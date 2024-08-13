@@ -34,6 +34,7 @@ func init() {
 	etherscanAPIs[8453] = &GenericEtherscanAPI{BaseURL: "https://api.basescan.org/api", EnvKey: "BASE_API_KEY"}
 	etherscanAPIs[42161] = &GenericEtherscanAPI{BaseURL: "https://api.arbiscan.io/api", EnvKey: "ARBITRUM_API_KEY"}
 	etherscanAPIs[100] = &GenericEtherscanAPI{BaseURL: "https://api-gnosis.etherscan.io/api", EnvKey: "GNOSIS_API_KEY"}
+	etherscanAPIs[324] = &GenericEtherscanAPI{BaseURL: "https://block-explorer-api.mainnet.zksync.io/api", EnvKey: "ZKSYNC_API_KEY"}
 	etherscanAPIs[56] = &GenericEtherscanAPI{BaseURL: "https://api.bscscan.com/api", EnvKey: "BSC_API_KEY"}
 	etherscanAPIs[137] = &GenericEtherscanAPI{BaseURL: "https://api.polygonscan.com/api", EnvKey: "POLYGON_API_KEY"}
 
