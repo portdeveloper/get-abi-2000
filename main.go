@@ -59,7 +59,7 @@ func healthCheck(c *gin.Context) {
 func getABI(c *gin.Context) {
 	chainId := c.Param("chainId")
 	address := c.Param("address")
-	rpcURL := c.Param("rpcUrl")[1:] // Remove the leading slash
+	rpcURL := c.Param("rpcUrl")[1:]
 
 	response, err := abiFetcher.FetchABI(c, chainId, address, rpcURL)
 	if err != nil {
