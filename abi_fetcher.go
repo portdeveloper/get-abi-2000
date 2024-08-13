@@ -107,11 +107,11 @@ func (af *ABIFetcher) getABI(chainId string, targetAddress string, rpcURL string
 
 	if ok {
 		abi, err := api.GetABIFromEtherscan(targetAddress)
-		if err != nil {
-			fmt.Printf("Error fetching ABI from Etherscan: %v\n", err)
-			return "", false, err
+		if err == nil {
+			return abi, false, nil
 		}
-		return abi, false, nil
+		fmt.Printf("Error fetching ABI from Etherscan: %v\n", err)
+		// Fall through to Heimdall if Etherscan fails
 	}
 
 	abi, err := getABIFromHeimdall(targetAddress, rpcURL)
