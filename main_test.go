@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -257,4 +258,62 @@ func TestParexContractABI(t *testing.T) {
 	assert.Contains(t, abi, "sendValidatorReward")
 
 	t.Logf("Received ABI: %s", abi)
+}
+
+func TestEtherscanFailureHeimdallFallback(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Setup
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	router.GET("/abi/:chainId/:address/*rpcUrl", getABI)
+
+	// Create a mock EtherscanAPI that always fails
+	mockEtherscanAPI := &MockEtherscanAPI{
+		ShouldFail: true,
+	}
+	etherscanAPIs[1] = mockEtherscanAPI
+
+	// Test contract address (use a real contract address that Heimdall can decompile)
+	address := "0x6B175474E89094C44Da98b954EedeAC495271d0F" // DAI token
+	chainID := "1"                                          // Ethereum mainnet
+	rpcURL := "rpc.ankr.com/eth"
+
+	// Make the request
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/abi/"+chainID+"/"+address+"/"+rpcURL, nil)
+	router.ServeHTTP(w, req)
+
+	// Check the response
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	// Check the specific fields
+	assert.Nil(t, response["implementation"])
+	assert.Equal(t, true, response["isDecompiled"])
+	assert.Equal(t, false, response["isProxy"])
+
+	// Check if the ABI contains some expected function
+	abi, ok := response["abi"].(string)
+	assert.True(t, ok)
+	assert.Contains(t, abi, "transfer")
+
+	t.Logf("Received ABI: %s", abi)
+}
+
+// MockEtherscanAPI is a mock implementation of the ChainAPI interface
+type MockEtherscanAPI struct {
+	ShouldFail bool
+}
+
+func (m *MockEtherscanAPI) GetABIFromEtherscan(address string) (string, error) {
+	if m.ShouldFail {
+		return "", fmt.Errorf("mock Etherscan API error")
+	}
+	return "", nil
 }
