@@ -2,13 +2,9 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -17,6 +13,7 @@ import (
 var (
 	storage       *ABIStorage
 	etherscanAPIs map[int]ChainAPI
+	abiFetcher    *ABIFetcher
 )
 
 var ErrABINotFound = errors.New("ABI not found")
@@ -35,6 +32,8 @@ func init() {
 	etherscanAPIs[11155111] = &GenericEtherscanAPI{BaseURL: "https://api-sepolia.etherscan.io/api", EnvKey: "SEPOLIA_API_KEY"}
 	etherscanAPIs[10] = &GenericEtherscanAPI{BaseURL: "https://api-optimistic.etherscan.io/api", EnvKey: "OPTIMISM_API_KEY"}
 	etherscanAPIs[56] = &GenericEtherscanAPI{BaseURL: "https://api.bscscan.com/api", EnvKey: "BSC_API_KEY"}
+
+	abiFetcher = NewABIFetcher(storage, etherscanAPIs)
 }
 
 func main() {
@@ -60,46 +59,20 @@ func healthCheck(c *gin.Context) {
 func getABI(c *gin.Context) {
 	chainId := c.Param("chainId")
 	address := c.Param("address")
-	rpcURL := strings.TrimPrefix(c.Param("rpcUrl"), "/")
+	rpcURL := c.Param("rpcUrl")[1:] // Remove the leading slash
 
-	if err := validateInput(chainId, address, rpcURL); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	abiFetcher := NewABIFetcher(storage, etherscanAPIs)
 	response, err := abiFetcher.FetchABI(c, chainId, address, rpcURL)
 	if err != nil {
-		status, errorMessage := handleError(err)
-		c.JSON(status, gin.H{"error": errorMessage})
+		switch e := err.(type) {
+		case *InvalidInputError:
+			c.JSON(http.StatusBadRequest, gin.H{"error": e.Error()})
+		case *ContractNotFoundError:
+			c.JSON(http.StatusNotFound, gin.H{"error": e.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error: " + err.Error()})
+		}
 		return
 	}
 
 	c.JSON(http.StatusOK, response)
-}
-
-func validateInput(chainId, address, rpcURL string) error {
-	if _, err := strconv.Atoi(chainId); err != nil {
-		return fmt.Errorf("invalid chainId: must be a number")
-	}
-	if !common.IsHexAddress(address) || len(address) != 42 {
-		return fmt.Errorf("invalid address: must be a valid 42-character Ethereum address (including '0x' prefix)")
-	}
-	if rpcURL == "" {
-		return fmt.Errorf("invalid rpcURL: cannot be empty")
-	}
-	return nil
-}
-
-func handleError(err error) (int, string) {
-	switch err.(type) {
-	case *InvalidInputError:
-		return http.StatusBadRequest, err.Error()
-	case *ContractNotFoundError:
-		return http.StatusNotFound, err.Error()
-	case *EtherscanAPIError:
-		return http.StatusServiceUnavailable, "External API error: " + err.Error()
-	default:
-		return http.StatusInternalServerError, "Internal server error"
-	}
 }

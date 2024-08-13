@@ -13,7 +13,7 @@ type ContractNotFoundError struct {
 }
 
 func (e *ContractNotFoundError) Error() string {
-	return "Contract not found at address: " + e.address
+	return "The address: " + e.address + " is not a contract"
 }
 
 type EtherscanAPIError struct {

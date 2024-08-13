@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -25,6 +26,18 @@ func NewABIFetcher(storage *ABIStorage, etherscanAPIs map[int]ChainAPI) *ABIFetc
 }
 
 func (af *ABIFetcher) FetchABI(c *gin.Context, chainId string, address string, rpcURL string) (gin.H, error) {
+	if _, err := strconv.Atoi(chainId); err != nil {
+		return nil, &InvalidInputError{message: "Invalid chainId: must be a number"}
+	}
+
+	if len(address) != 42 {
+		return nil, &InvalidInputError{message: "Invalid address: must be 42 characters long (including '0x' prefix)"}
+	}
+
+	if rpcURL == "" {
+		return nil, &InvalidInputError{message: "Invalid rpcURL: cannot be empty"}
+	}
+
 	if item, ok := af.storage.Get(chainId + "-" + address); ok {
 		return af.createResponse(item), nil
 	}
@@ -33,9 +46,13 @@ func (af *ABIFetcher) FetchABI(c *gin.Context, chainId string, address string, r
 	if err != nil {
 		return nil, &InvalidInputError{message: "Failed to connect to Ethereum node: " + err.Error()}
 	}
+	defer client.Close()
 
 	if err := af.validateContract(c.Request.Context(), client, address); err != nil {
-		return nil, err
+		if _, ok := err.(*InvalidInputError); ok {
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to validate contract: %v", err)
 	}
 
 	proxyInfo, err := DetectProxyTarget(c.Request.Context(), client, common.HexToAddress(address))
@@ -63,10 +80,13 @@ func (af *ABIFetcher) FetchABI(c *gin.Context, chainId string, address string, r
 func (af *ABIFetcher) validateContract(ctx context.Context, client *ethclient.Client, address string) error {
 	code, err := client.CodeAt(ctx, common.HexToAddress(address), nil)
 	if err != nil {
+		if _, ok := err.(*url.Error); ok {
+			return &InvalidInputError{message: "Invalid RPC URL or network error: " + err.Error()}
+		}
 		return fmt.Errorf("failed to check contract code: %v", err)
 	}
 	if len(code) == 0 {
-		return fmt.Errorf("the provided address is not a contract")
+		return &ContractNotFoundError{address: address}
 	}
 	return nil
 }
