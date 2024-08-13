@@ -31,6 +31,7 @@ func init() {
 	etherscanAPIs[1] = &GenericEtherscanAPI{BaseURL: "https://api.etherscan.io/api", EnvKey: "ETHEREUM_API_KEY"}
 	etherscanAPIs[11155111] = &GenericEtherscanAPI{BaseURL: "https://api-sepolia.etherscan.io/api", EnvKey: "SEPOLIA_API_KEY"}
 	etherscanAPIs[10] = &GenericEtherscanAPI{BaseURL: "https://api-optimistic.etherscan.io/api", EnvKey: "OPTIMISM_API_KEY"}
+	etherscanAPIs[8453] = &GenericEtherscanAPI{BaseURL: "https://api.basescan.org/api", EnvKey: "BASE_API_KEY"}
 	etherscanAPIs[56] = &GenericEtherscanAPI{BaseURL: "https://api.bscscan.com/api", EnvKey: "BSC_API_KEY"}
 
 	abiFetcher = NewABIFetcher(storage, etherscanAPIs)
