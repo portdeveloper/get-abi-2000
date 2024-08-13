@@ -19,7 +19,7 @@ type GenericEtherscanAPI struct {
 func (e *GenericEtherscanAPI) GetABIFromEtherscan(address string) (string, error) {
 	apiKey := os.Getenv(e.EnvKey)
 	if apiKey == "" {
-		return "", fmt.Errorf("API key not set for chain")
+		return "", fmt.Errorf("API key not set for chain: %s", e.EnvKey)
 	}
 	url := fmt.Sprintf("%s?module=contract&action=getabi&address=%s&apikey=%s", e.BaseURL, address, apiKey)
 	return fetchABI(url)

@@ -63,7 +63,7 @@ func (af *ABIFetcher) FetchABI(c *gin.Context, chainId string, address string, r
 	targetAddress, implementation := af.getTargetAddress(address, proxyInfo)
 	abi, isDecompiled, err := af.getABI(chainId, targetAddress, rpcURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch ABI: %v", err)
 	}
 
 	item := StorageItem{
@@ -107,9 +107,11 @@ func (af *ABIFetcher) getABI(chainId string, targetAddress string, rpcURL string
 
 	if ok {
 		abi, err := api.GetABIFromEtherscan(targetAddress)
-		if err == nil {
-			return abi, false, nil
+		if err != nil {
+			fmt.Printf("Error fetching ABI from Etherscan: %v\n", err)
+			return "", false, err
 		}
+		return abi, false, nil
 	}
 
 	abi, err := getABIFromHeimdall(targetAddress, rpcURL)
