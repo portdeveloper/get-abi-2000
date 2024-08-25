@@ -75,7 +75,7 @@ func getABI(c *gin.Context) {
 		case *ContractNotFoundError:
 			c.JSON(http.StatusNotFound, gin.H{"error": e.Error()})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error: " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
